@@ -1,0 +1,225 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head profile="http://gmpg.org/xfn/11">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<title>  The Prince of Darkness and Database Encryption &raquo; Grinding Rails</title>
+
+<meta name="generator" content="WordPress 2.4-bleeding" /> <!-- leave this for stats -->
+
+<link rel="stylesheet" href="http://tuples.us/wp-content/themes/girder/style.css" type="text/css" media="screen" />
+<link rel="alternate" type="application/rss+xml" title="RSS" href="http://feeds.feedburner.com/GrindingRails" />
+<link rel="pingback" href="http://tuples.us/xmlrpc.php" />
+
+	<link rel='archives' title='June 2008' href='http://tuples.us/2008/06/' />
+	<link rel='archives' title='May 2008' href='http://tuples.us/2008/05/' />
+	<link rel='archives' title='December 2007' href='http://tuples.us/2007/12/' />
+	<link rel='archives' title='October 2007' href='http://tuples.us/2007/10/' />
+	<link rel='archives' title='September 2007' href='http://tuples.us/2007/09/' />
+	<link rel='archives' title='August 2007' href='http://tuples.us/2007/08/' />
+	<link rel='archives' title='July 2007' href='http://tuples.us/2007/07/' />
+	<link rel='archives' title='June 2007' href='http://tuples.us/2007/06/' />
+	<link rel='archives' title='May 2007' href='http://tuples.us/2007/05/' />
+	<link rel='archives' title='March 2007' href='http://tuples.us/2007/03/' />
+	<link rel='archives' title='November 2006' href='http://tuples.us/2006/11/' />
+	<link rel='archives' title='October 2006' href='http://tuples.us/2006/10/' />
+	<link rel='archives' title='September 2006' href='http://tuples.us/2006/09/' />
+	<link rel='archives' title='August 2006' href='http://tuples.us/2006/08/' />
+	<link rel='archives' title='July 2006' href='http://tuples.us/2006/07/' />
+	<link rel='archives' title='May 2006' href='http://tuples.us/2006/05/' />
+	<link rel='archives' title='April 2006' href='http://tuples.us/2006/04/' />
+	<link rel='archives' title='March 2006' href='http://tuples.us/2006/03/' />
+
+	<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://tuples.us/xmlrpc.php?rsd" />
+ <link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://tuples.us/wp-includes/wlwmanifest.xml" /> <meta name="generator" content="WordPress/2.4-bleeding" />
+</head>
+<body>
+
+<div id="Pager"></div>
+
+<div id="Content">
+  <a href="/"><img src="http://tuples.us/wp-content/themes/girder/images/blog_logo.png"></a>
+
+
+<div id="Copy">
+	    <div class="post" id="post_86">
+      <h1><a href="http://tuples.us/2008/06/17/the-prince-of-darkness-and-database-encryption/">The Prince of Darkness and Database Encryption</a></h1>
+      <div class="byline">
+        <cite>Jordan McKible</cite>
+  	    <span class="date">June 17, 2008</span>
+        
+      </div>
+			<div class="content">
+        <p>Question: So I&#8217;ve got some sensitive data in my database.  Maybe a social security or credit card number here or there.  Not something I want to be storing as plain text.  What&#8217;s a person to do?</p>
+<p>Answer: <a href="http://github.com/jmckible/lucifer/tree/master">Lucifer</a></p>
+<p>Lucifer is a single encryption key solution which uses the ezcrypto gem to transparently encrypt/decrypt database columns.  How&#8217;s it work?</p>
+<p>Let&#8217;s say I want to store a person&#8217;s social security number.  Since we&#8217;ll be storing an encrypted version in the database, we want to use a binary column.  Also, Lucifer works by trigging off a column name.  I chose the suffix &#8216;_b&#8217; for no good reason.  Watch:</p>
+<pre>
+class AddSsnToPeople < ActiveRecord::Migration
+  def self.up
+    add_column :people, :ssn_b, :binary
+  end
+
+  def self.down
+    remove_column :people, :ssn_b
+  end
+end
+</pre>
+<p>So now that we&#8217;ve got the database setup, let&#8217;s install Lucifer.  First you&#8217;ll need to install the ezcrypto gem.  If you&#8217;re on &gt;= Rails 2.1, add the gem to your environment.rb:</p>
+<pre>
+gem install ezcrypto
+</pre>
+<pre>
+# In environment.rb
+config.gem 'ezcrypto'
+</pre>
+<pre>
+./script/plugin install git://github.com/jmckible/lucifer.git
+</pre>
+<p>You&#8217;ll need to setup an encryption key and salt in config/key.yml.  You can find an example in the Lucifer directory at key.yml.example.  Something along the lines of:</p>
+<pre>
+development:
+  key: key
+  salt: salt
+
+test:
+  key: key
+  salt: salt
+
+production:
+  key: key
+  salt: salt
+</pre>
+<p>Now to switch it on!</p>
+<pre>
+class Person &lt; ActiveRecord::Base
+  encrypt_attributes
+end
+</pre>
+<p>Voila.  Let&#8217;s test it out in the console:</p>
+<pre>
+person = Person.new :ssn=>'000-00-0000'
+=> Person...
+person.save
+=> true
+Person.first.ssn
+=> '000-00-0000'
+</pre>
+<p>And what&#8217;s in the database?</p>
+<pre>
+&gt; select * from people;
+ ---------------------------------
+| id         | ssn_b               |
+ ----------------------------------
+| 1          | U??6?7f%25(????? |
+ ---------------------------------
+</pre>
+<p>Sweet.  Do note: This will only protect you if someone compromises your database.  If someone gains access to your app, you&#8217;re still screwed.</p>
+       				</div>
+		</div>
+	  
+<!-- You can start editing here. -->
+<a name="comments"></a>
+
+
+
+<h2>Add a Comment</h2>
+<form action="http://tuples.us/wp-comments-post.php" id="AddComment" method="post">
+
+
+
+  <p>Name<br/>
+  <input name="author" id="author" value="" size="30" type="text" tabindex="1" /></p>
+
+  <p>Email<br />
+  <input name="email" id="email" value="" size="30" type="text" tabindex="2" /></p>
+
+  <p>Web Site<br />
+  <input name="url" id="url" value="" size="30" type="text" tabindex="3" /></p>
+
+  
+  <p>
+     <label>
+       Comments<br />
+       <textarea name="comment" id="comment" tabindex="4"></textarea></p>
+
+   <p>
+     <input name="submit" type="submit" id="submit" tabindex="5" value="Submit" />
+     <input type="hidden" name="comment_post_ID" value="86" />
+   </p>
+    </form>
+
+
+	</div>
+
+	<div id="Sidebar">
+      
+    <h2>Syndicate <a href="http://feeds.feedburner.com/GrindingRails"><img src="http://tuples.us/wp-content/themes/girder/images/rss.gif"></a></h2>
+    <p>Subscribe to the <a href="http://feeds.feedburner.com/GrindingRails">RSS feed</a>.</p>
+
+		<h2>Pages</h2>
+		<p><a href="http://tuples.us/rails-guide">Rails Guide</a> - Get Rails setup on OS X and deploy your application to production.</p>
+    
+  
+    <h2>About</h2>
+    <p>Grinding Rails is the technical blog of <a href="http://jordan.mckible.com/">Jordan McKible</a>.  It's mostly about Ruby and Rails.</p>
+    
+     <h1><a href="http://twitter.com/jmckible">Twitter</a></h1>
+     <p><span id="my_twitter_status"></span></p>
+    
+    <h2>Archives</h2>
+    <ul>
+      	<li><a href='http://tuples.us/2008/06/' title='June 2008'>June 2008</a></li>
+	<li><a href='http://tuples.us/2008/05/' title='May 2008'>May 2008</a></li>
+	<li><a href='http://tuples.us/2007/12/' title='December 2007'>December 2007</a></li>
+	<li><a href='http://tuples.us/2007/10/' title='October 2007'>October 2007</a></li>
+	<li><a href='http://tuples.us/2007/09/' title='September 2007'>September 2007</a></li>
+	<li><a href='http://tuples.us/2007/08/' title='August 2007'>August 2007</a></li>
+	<li><a href='http://tuples.us/2007/07/' title='July 2007'>July 2007</a></li>
+	<li><a href='http://tuples.us/2007/06/' title='June 2007'>June 2007</a></li>
+	<li><a href='http://tuples.us/2007/05/' title='May 2007'>May 2007</a></li>
+	<li><a href='http://tuples.us/2007/03/' title='March 2007'>March 2007</a></li>
+	<li><a href='http://tuples.us/2006/11/' title='November 2006'>November 2006</a></li>
+	<li><a href='http://tuples.us/2006/10/' title='October 2006'>October 2006</a></li>
+	<li><a href='http://tuples.us/2006/09/' title='September 2006'>September 2006</a></li>
+	<li><a href='http://tuples.us/2006/08/' title='August 2006'>August 2006</a></li>
+	<li><a href='http://tuples.us/2006/07/' title='July 2006'>July 2006</a></li>
+	<li><a href='http://tuples.us/2006/05/' title='May 2006'>May 2006</a></li>
+	<li><a href='http://tuples.us/2006/04/' title='April 2006'>April 2006</a></li>
+	<li><a href='http://tuples.us/2006/03/' title='March 2006'>March 2006</a></li>
+    </ul>
+    
+    <form method="get" id="searchform" action="/index.php">
+  <div class="search">
+    <input type="text" value="" name="s" id="s" class="text" />
+    <input type="submit" id="searchsubmit" value="Search" class="button"/>
+  </div>
+</form>  
+	</div>
+
+
+
+<div id="Footer">
+  <p>All images and design are © 2007 <a href="http://corkboardinc.com">Corkboard, Inc.</a></p>
+</div>
+
+</div>
+
+</body>
+
+<script type="text/javascript">
+	function twitterCallback(obj) {
+		var id = obj[0].user.id;
+		document.getElementById('my_twitter_status').innerHTML = obj[0].text;
+	}
+</script>
+<script type="text/javascript" src="http://www.twitter.com/statuses/user_timeline/95653.json?callback=twitterCallback&count=1"></script>
+
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+_uacct = "UA-574534-1";
+urchinTracker();
+</script>
+</html>
