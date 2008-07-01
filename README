@@ -1,1 +1,30 @@
-there is nothing yet here.
+=begin 
+TODO List for HeaderScanner Library
+
+Test to see if the webserver is working as a web proxy 
+For example 
+do a
+
+GET http://URL/ HTTP/1.0   o  GET HTTP://URL:PORT/ HTTP/1.0
+
+if I get a response of  HTTP/1.1 200 OK .. 
+it should return that we can use the web server as a web proxy 
+Another way we could check for a web proxy is to use the actual command CONNECT
+
+CONNECT URL:PORT HTTP/1.0
+
+if we get something close to HTTP/1.1 Connection established ...  eureka ! 
+If we are able to establish a connection , usually on port 443 , this will allow us to proxy 
+comms through that port meaning that we can perform tests on local IP address 
+
+GET http://192.168.1.1:22 HTTP/1.1
+
+HTTP/1.1 200 OK 
+Connection: close
+
+SSH-20.-OpenSSH_4.2.....
+
+if we get a 502 bad gateway the port is close.
+if we get a 502 proxy error means that we do not have a banner but the port IS open.
+
+=end

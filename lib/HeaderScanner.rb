@@ -4,38 +4,9 @@
 #
 #  Created by FreedomCoder on 4/21/08.
 #  Copyright (c) 2008 FreedomCoder Labs. All rights reserved.
-#
+#  GPL 3.0 
 
-=begin 
-TODO List for HeaderScanner Library
 
-Test to see if the webserver is working as a web proxy 
-For example 
-do a
-
-GET http://URL/ HTTP/1.0   o  GET HTTP://URL:PORT/ HTTP/1.0
-
-if I get a response of  HTTP/1.1 200 OK .. 
-it should return that we can use the web server as a web proxy 
-Another way we could check for a web proxy is to use the actual command CONNECT
-
-CONNECT URL:PORT HTTP/1.0
-
-if we get something close to HTTP/1.1 Connection established ...  eureka ! 
-If we are able to establish a connection , usually on port 443 , this will allow us to proxy 
-comms through that port meaning that we can perform tests on local IP address 
-
-GET http://192.168.1.1:22 HTTP/1.1
-
-HTTP/1.1 200 OK 
-Connection: close
-
-SSH-20.-OpenSSH_4.2.....
-
-if we get a 502 bad gateway the port is close.
-if we get a 502 proxy error means that we do not have a banner but the port IS open.
-
-=end
 
 require 'rubygems'
 require "HTTPBasic.rb"
@@ -45,12 +16,12 @@ class HeaderScanner < HTTPBasic
   	
 	#Finds internal IP disclosure
 	def find_internal_ip
-	  (@header+@response).scan(/10(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){3}|172.(?:1[6-9]|2[0-9]?\d|30|31)(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}|192.168(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}/)
+	  (@header+@response).scan(/10(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){3}|172.(?:1[6-9]|2[0-9]?\d|30|31)(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}|192.168(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}/) unless @header.nil?
 	end
 	
 	#Returns Server information on Header
 	def find_server_disclosure
-	  @header.scan(/Server:.*$/)
+	  @header.scan(/Server:.*$/) unless @header.nil?
   end
   
   #Finds a given string or regex

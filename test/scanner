@@ -1,0 +1,215 @@
+#!/usr/bin/env ruby
+#  HTTP method scanner Version 0.1
+# 
+#  Created by FreedomCoder on 6/29/08.
+#  Copyright (c) 2008 FreedomCoder Labs. All rights reserved.
+#  GPL 3.0
+#  DESCRIPTION:
+#  This is just a test console app to show how to use the HeaderScanner API
+
+require 'rubygems'
+require 'getoptlong'
+require 'headerscanner'
+opts = GetoptLong.new(
+[ '--help', '-h', GetoptLong::NO_ARGUMENT ],
+[ '--ip', '-i', GetoptLong::REQUIRED_ARGUMENT ],
+[ '--url', '-s', GetoptLong::REQUIRED_ARGUMENT ],
+[ '--port', '-p',GetoptLong::REQUIRED_ARGUMENT ],
+['--file', '-f', GetoptLong::REQUIRED_ARGUMENT ],
+['--full','-F',GetoptLong::NO_ARGUMENT ],
+['--head','-H',GetoptLong::NO_ARGUMENT ],
+['--get','-G',GetoptLong::NO_ARGUMENT ],
+['--post','-P',GetoptLong::REQUIRED_ARGUMENT ],
+['--options','-O',GetoptLong::NO_ARGUMENT ],
+['--trace','-T',GetoptLong::NO_ARGUMENT ],
+['--put','-U',GetoptLong::OPTIONAL_ARGUMENT ],
+['--delete','-D',GetoptLong::OPTIONAL_ARGUMENT ],
+['--propfind',GetoptLong::OPTIONAL_ARGUMENT ],
+['--proppatch',GetoptLong::OPTIONAL_ARGUMENT ],
+['--export','-e',GetoptLong::NO_ARGUMENT],
+['--user', GetoptLong::REQUIRED_ARGUMENT ],
+['--pass', GetoptLong::REQUIRED_ARGUMENT ],
+['--ptid', GetoptLong::REQUIRED_ARGUMENT ],
+['--findip', GetoptLong::NO_ARGUMENT ],
+['--findserver', GetoptLong::NO_ARGUMENT ]
+)
+@list = []
+%w(@get @options @post @put @delete @trace @propfind @proppatch @server @internalip).each{|var| eval("#{var} = false") }
+
+@ports = nil
+opts.each do |opt, arg|
+  case opt
+    when '--help':
+      # BEGIN OF HELP
+      puts "\nHELP for HeadScanner\n---------------------\n
+      --help, -h
+      \tWell I guess you know what this is for (To obtain this Help).\n
+      --ip, -i
+      \t This option requires an IP address \",\".\n
+      --url, -s
+      \t This option allow to insert an url in the form of:
+      \t\twww.example.com\n\t\thttp:\/\/www.example.com or\n\t\thttps:\/\/www.example.com\n
+      --port, -p
+      \t This options requires an argument with a port or a list of port separed by \",\".\n
+      --file, -f
+      \t This options allows us to give as an input file a file with ip address.\n
+      \t One IP address per line with its respective list of port split with comas.
+      \t\t<IP>:<PORT0,..,PORTn>\n
+      --lan, -l
+      \t This is not implemented yet.\n
+      --range, -r
+      \tThis option is to provide a range of IP address to test with the following format <IP>-<IP>.n
+      --smart, -S
+      \tThis option executes an OPTIONS and based on that it will try to check the rest.
+      \tof the allowed requests based on the response of OPTIONS.\n
+      --full, -F
+      \tThis option executes all the available Methods.\n
+      --head, -H
+      \tOnly executes a HEAD on the IP and PORTS provided.\n
+      --get, -G
+      \tOnly executes a GET on the IP and PORTS provided.\n
+      --basic_auth, B
+      \tOnly checks for basic authentication on sites without a SSL layer.\n
+      --post, -P
+      \tOnly executes a POST on the IP and PORTS provided. This option requires a string to use as body\n
+      --options, -O
+      \tOnly executes an OPTIONS on the IP and PORTS provided.\n
+      --trace, -T
+      \tOnly executes a TRACE on the IP and PORTS provided.\n
+      --put, -U
+      \tOnly executes a PUT on the IP and PORTS provided.\n
+      --delete, -D
+      \tOnly executes a DELETE on the IP and PORTS provided.\n
+      --propfind
+      \tOnly executes a PUT on the IP and PORTS provided.\n
+      --proppatch
+      \tOnly executes a DELETE on the IP and PORTS provided.\n
+      --export, -e
+      \tThis options is not yet implemented but it will allow us to export it to an external source.\n
+      --user 
+      \tThe username for the external source.\n
+      --pass 
+      \tThe password for the external source.\n
+      --ptid
+      \tThe PentestID for the external source.
+      Copyright 2007 -- FreedomCoder - matiasbrutti AT gmail DOT com\n"
+      #END OF HELP
+      exit(0)
+    when '--ip':
+      arg.split(",").each {|x| @list << [x,nil]}
+    when '--url':
+      arg.split(",").each {|x| @list << [x,nil]}
+    when '--port':
+      @ports = arg.split(',') # esto deberia devolver un array con los ports
+    when '--file':
+      @file = 1
+      aFile = File.new(arg)
+      aFile.each_line {|x|
+      @list << x.split(":")
+      }
+      aFile.close
+    when '--findip':
+      @internalip = true
+    when '--findserver':
+      @server = true
+    when '--export':
+      Export = true
+    when '--username':
+      @username = arg
+    when '--password':
+      @password = arg
+    when '--penMethodsid':
+      @project = arg
+    when '--full':
+      %w(@get @options @post @put @delete @trace @propfind @proppatch).each{|var| eval("#{var} = true") }
+    when '--head':
+      @head = true
+    when '--get':
+      @get = true
+    when '--options':
+      @options = true
+    when '--put':
+      @put = true
+    when '--delete':
+      @delete = true
+    when '--trace':
+      @trace = true
+    when '--propfind':
+      @propfind = true
+    else
+      puts "Unknown command. Please try again"
+      exit(0)
+  end
+end
+
+@list.each do |entity|
+  output = File.new("#{entity[0]}.hsn", "w+")
+  %w(@head @get @options @post @put @delete @trace @propfind @proppatch).each do |method|
+    eval <<-EOD
+      if #{method}
+        if !entity[1].nil?
+          entity[1].split(',').each do |port|
+            req = HeaderScanner.new
+            req.get :url => "#{entity[0]}", :port => port
+            output << "METHOD #{method} for IP/URL #{entity[0]} on port}:\n\n"
+            output << req.header
+            output << "\n------------------------------------\n"
+            if @server && ("#{method}" == "@get")
+              output << "Server Disclosure\n\n"
+              output << req.find_server_disclosure.to_s
+              output << "\n------------------------------------\n"
+            end
+            if @internalip
+              output << "Internal IP disclosure\n\n"
+              output << req.find_internal_ip.to_s
+              output << "\n------------------------------------\n"
+            end
+          end
+        elsif !@ports.nil?
+          @ports.each do |port|
+            req = HeaderScanner.new
+            req.get :url => "#{entity[0]}", :port => port
+            output << "METHOD #{method} for IP/URL #{entity[0]} on port}:\n\n"
+            output << req.header
+            output << "\n------------------------------------\n"
+            if @server && ("#{method}" == "@get")
+              output << "Server Disclosure\n\n"
+              output << req.find_server_disclosure.to_s
+              output << "\n------------------------------------\n"
+            end
+            if @internalip
+              output << "Internal IP disclosure\n\n"
+              output << req.find_internal_ip.to_s
+              output << "\n------------------------------------\n"
+            end
+          end 
+        else
+          req = HeaderScanner.new
+          req.get :url => "#{entity[0]}", :port => port
+          output << "METHOD #{method} for IP/URL #{entity[0]} on port}:\n\n"
+          output << req.header
+          output << "\n------------------------------------\n"
+          if @server && ("#{method}" == "@get")
+            output << "Server Disclosure\n\n"
+            output << req.find_server_disclosure.to_s
+            output << "\n------------------------------------\n"
+          end
+          if @internalip
+            output << "Internal IP disclosure\n\n"
+            output << req.find_internal_ip.to_s
+            output << "\n------------------------------------\n"
+          end
+        end
+      end
+    EOD
+  end
+  output.close
+end
+  
+        
+        
+      
+    
+  
+  
+
