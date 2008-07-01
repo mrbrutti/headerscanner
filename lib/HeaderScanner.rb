@@ -14,29 +14,34 @@ require "Colorize.rb"
 
 class HeaderScanner < HTTPBasic
   	
-	#Finds internal IP disclosure
+	#Finds internal IP disclosure whole 
 	def find_internal_ip
-	  (@header+@response).scan(/10(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){3}|172.(?:1[6-9]|2[0-9]?\d|30|31)(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}|192.168(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}/) unless @header.nil?
+	  self.to_s.scan(/10(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){3}|172.(?:1[6-9]|2[0-9]?\d|30|31)(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}|192.168(?:\.(?:25[0-5]|(?:2[0-4]|1\d|[1-9])?\d)){2}/)
 	end
 	
+	#Finds a given string or regex
+  def find_string(string)
+    self.to_s.scan(string)
+  end
+  
+  ## HEADER CHECKS
 	#Returns Server information on Header
 	def find_server_disclosure
 	  @header.scan(/Server:.*$/) unless @header.nil?
   end
   
-  #Finds a given string or regex
-  def find_string(string)
-    @header.scan(string)
+  def check_for_proxy
+    @header.scan(/Via:.*$/) unless @header.nil?
   end
   
   #Checks for Basic Authentication
   def check_basic_auth
     @header.match(/WWW-Authenticate/).nil? ? false : true
   end
-    
+  
+  ## PROXY CHECKS
   def check_proxy_by_connect(url=nil, port=nil, protocol=nil, body=nil, extheader=nil)
-    do_connect(url || @url, port || @port, protocol || @protocol, body || @body, extheader || @extheader)
-    response.to_s.match(/established/) != nil ? response.to_s : response.to_s
+    do_connect(url || @url, port || @port, protocol || @protocol, body || @body, extheader || @extheader).to_s.match(/established/)
   end
   
   private
