@@ -1,7 +1,11 @@
-#require "../lib/HeaderScanner"
-require "../lib/Colorize.rb"
+require "../lib/HeaderScanner"
 
-#a = HeaderScanner.new
-#p a.test
-Colorize.pretty_print("rodolinux")
-#p a.handcraft_request("www.freedomcoder.com.ar", 80,"GET http://www.freedomcoder.com.ar/:22 HTTP/1.0\n\n" )
+
+a = HeaderScanner.new
+
+a.get :url => "www.google.com"
+puts a.getheader("Server")
+a.get :url => "www.amazon.com"
+puts a.getheader("Server")
+
+

@@ -27,11 +27,11 @@ class HeaderScanner < HTTPBasic
   ## HEADER CHECKS
 	#Returns Server information on Header
 	def find_server_disclosure
-	  @header.scan(/Server:.*$/) unless @header.nil?
+	  getheader("Server") unless @header.nil?
   end
   
   def check_for_proxy
-    @header.scan(/Via:.*$/) unless @header.nil?
+    getheader("Via") unless @header.nil?
   end
   
   #Checks for Basic Authentication
@@ -60,6 +60,7 @@ class HeaderScanner < HTTPBasic
     rescue
       puts "error: #{$!}"
     end
+    parseheader
     [@header, @response]
   end
   

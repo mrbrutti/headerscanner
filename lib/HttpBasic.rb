@@ -2,7 +2,7 @@ require 'socket'
 
 class HTTPBasic
   
-  attr_reader :header, :response
+  attr_reader :header, :response, :status, :reason, :headers
   attr_accessor :url, :port, :protocol, :body, :extheader
   
 	def initialize(url=nil, port=nil, protocol=nil, body=nil, extheader=nil)
@@ -51,9 +51,14 @@ class HTTPBasic
     rescue
       puts "error: #{$!}"
     end
+    parseheader
     [@header, @response]
   end
-    
+  
+  def getheader(key)
+    @headers.fetch(key)
+  end
+  
   private
   
   def do_request(method, url, port, body, protocol, extheader)
@@ -71,6 +76,19 @@ class HTTPBasic
     rescue
       puts "error: #{$!}"
     end
+    parseheader
     [@header, @response]
+  end
+  
+  def parseheader
+    @headers = {}
+    @header.split("\r\n").each_with_index do |h,idx|
+      if idx == 0
+        protocol, @status, @reason = h.split(' ') 
+      else
+        key,value = h.split(': ')
+        @headers[key] = value
+      end
+    end
   end
 end
